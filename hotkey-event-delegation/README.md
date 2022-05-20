@@ -1,8 +1,23 @@
 # Insomnia Desktop Hotkey Event Delegation
 * Status: [drafted]
 
-## Context and Problem Statement
+## Table of Content
+* [Insomnia Desktop Hotkey Event Delegation](#insomnia-desktop-hotkey-event-delegation)
+* [Table of Content](#table-of-content)
+  * [Context and Problem Statement](#context-and-problem-statement)
+  * [Decision Drivers](#decision-drivers)
+  * [Non-goals](#non-goals)
+  * [Considered Options](#considered-options)
+  * [Decision Outcome](#decision-outcome)
+    * [Positive Consequences](#positive-consequences)
+    * [Negative Consequences](#negative-consequences)
+  * [Pros and Cons of the Options](#pros-and-cons-of-the-options)
+    * [Option 1](#option-1)
+    * [Option 2](#option-2)
+    * [Option 3](#option-3)
+  * [Links](#links)
 
+## Context and Problem Statement
 ### Context
 Insomnia Desktop client supports hotkey commands to control the behaviors of the applications listed out here. Currently, the hotkey operation works by,
 
@@ -24,6 +39,9 @@ The bottom-to-top way of current hotkey operation flow has created complications
 * The Keyboard, ‘keydown’, event bubble/propagation needs to be completely separated from hotkey command event propagation
 * The hotkey command event needs to be distributed from the top to the bottom and selectively listened in where a hotkey operation actually targets
 * NeDB database should be read only once unless its modification happens
+
+## Non-goal
+* This effort can help converting class components into functional components, but that is not the goal for this work.
 
 ## Considered Options
 * option 1 - use of pub/sub pattern with EventEmitter and React Context AP in the top to flush out hotkey event from top to bottom
@@ -74,10 +92,8 @@ We don't redesign the flow and keeps the pattern of KeyDownBinder and calling ex
 * Bad, because it somewhat blocks tech debt effort because of how KeyDownBinder has been used to trigger hotkey callback imperatively
 * Bad, because it still hangs event listeners from all KeyDownBinder instances, which are rendered through components that are unnecessarily mounted. For instance, Modal, Dropdown don't need to be mounted when they are not open but they are. This includes KeyDownBinder, which means keydown event listeners are registered unnecessarily; contributing to draining overall app performance.
 
-* … <!-- numbers of pros and cons can vary -->
-Links
+## Links
 * [Link type] [Link to ADR] <!-- example: Refined by [ADR-0005](0005-example.md) -->
-* … <!-- numbers of links can vary -->
 
 <!-- markdownlint-disable-file MD013 -->
 
