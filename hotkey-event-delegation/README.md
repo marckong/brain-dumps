@@ -9,6 +9,7 @@ Insomnia Desktop client supports hotkey commands to control the behaviors of the
 1. propagate the keydown event from <KeyDownBinder /> to the destination component
 2. read the NeDB database to check if the key combination exists as a registered hotkey (every key stroke triggers this)
 3. execute the callback function to act on the hotkey command in the destination component
+
 ![plot](./current-diagram.png)
 
 It is observed that this way of flow is directed from the bottom to top, which goes against the react principle; top-to-bottom and declarative rendering.
@@ -51,135 +52,28 @@ Chosen option: "option 1", because
 ## Pros and Cons of the Options
 ### Option 1
 This option requires EventEmitter and React Context implementation. 
+
 ![plot](./option-1-diagram.png)
 
-EventEmitter and React Context
-```js
+* Good, because it does not require any external library
+* Good, because it centralizes the keydown event to document.body, which flushes out a command throughout the application via HotKeysContext subscription; top to bottom
+* Bad, because it requires extra effort to write event subscription pipes as its native
+* Bad, because it requires function component pattern and the patterns of current codebase needs some workaround for it
 
-const HOTKEY_EVENT_TAG = 'HOTKEY_EVENT_TAG';
-const hotkeyEvent = new EventEmitter();
-
-interface HotKeyCommand {
-  hotkeyId: string;
-  conditions?: string[];
-}
-export const HotKeysContext = createContext<UseHotKeysContext>({} as UseHotKeysContext);
-export const HotKeysProvider: FunctionComponent<{ children: ReactNode}> = ({ children }) => {
-  const { hotKeyRegistry } = useSelector(selectSettings);
-
-  const sendHotkeyEvent = useCallback((hotkeyId: string, targetIdentifier?: string) => {
-    hotkeyEvent.emit(HOTKEY_EVENT_TAG, { hotkeyId, targetIdentifier });
-  }, []);
-
-  const checkIfHotKeyPressed = useCallback((e: KeyboardEvent, definitions: Record<string, HotKeyDefinition>): null | HotKeyDefinition => {
-    /**
-     * this is a copy paste from the existing function with slight modification
-    */
-    function pressedHotKey(event: KeyboardEvent, definition: HotKeyDefinition): boolean {
-      const pressedKeyComb: KeyCombination = {
-        ctrl: event.ctrlKey,
-        alt: event.altKey,
-        shift: event.shiftKey,
-        meta: event.metaKey,
-        /**
-         * TODO: keyCode is deprecated. we may refactor this in the soon future but this is out of scope for this work.
-         * */
-        keyCode: event.keyCode,
-      };
-
-      const keyCombList = getPlatformKeyCombinations(hotKeyRegistry[definition.id]);
-      for (const keyComb of keyCombList) {
-        if (areSameKeyCombinations(pressedKeyComb, keyComb)) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    const pressed = Object.values(definitions).find(def => pressedHotKey(e, def));
-    if (!pressed) {
-      return null;
-    }
-
-    return pressed;
-  }, [hotKeyRegistry]);
-
-  return (
-    <HotKeysContext.Provider value={{ sendHotkeyEvent, checkIfHotKeyPressed }}>{children}</HotKeysContext.Provider>
-  );
-};
-
-```
-GlobalHotKeysBinder
-```js
-const GlobalHotKeysBinder: FunctionComponent<{ children: ReactNode }> = ({ children }) => {
-  const { sendHotkeyEvent, checkIfHotKeyPressed } = useContext(HotKeysContext);
-
-  useEffect(() => {
-    const body = document.body;
-    const listener = async (e: KeyboardEvent) => {
-      const result = await checkIfHotKeyPressed(e, hotKeyRefs);
-      if (!result) {
-        return;
-      }
-
-      sendHotkeyEvent(result.id);
-    };
-
-    body.addEventListener('keydown', listener);
-    return () => body.removeEventListener('keydown', listener);
-  }, [sendHotkeyEvent, checkIfHotKeyPressed]);
-
-  return <>{children}</>;
-};
-```
-how it can be used.
-```js
-const TargetComponent1: FunctionComponent<Props> = props => {
-  const handleHotKey = useCallback((e: HotKeyEvent) => {
-    if (e.hotkeyId === hotKeyRefs.GRAPHQL_EXPLORER_FOCUS_FILTER.id) {
-      // doSomething
-    }
-  }, []);
-
-  useHotKeysSubscriber(handleHotKey);
-
-  return <div>Target Component 1</div>
-};
-
-const App: FunctionComponent = () => {
-  return (
-      <HotKeysProvider>
-        <GlobalHotKeysBinder>
-          <TargetComponent1 />
-          <SomeWrapper>
-            <TargetComponent2 />
-          </SomeWrapper>
-        </GlobalHotKeysBinder>
-      </HotKeysProvider>
-  );
-};
-```
-
-* Good, because [argument a]
-* Good, because [argument b]
-* Bad, because [argument c]
-* … <!-- numbers of pros and cons can vary -->
 Option 2
+The exact same implementation as option 1 but instead of using EventEmitter, it would use RxJS Subject
 
-[example | description | pointer to more information | …] <!-- optional -->
+* Good, because rxjs offers very powerful operators in the pipe of event stream
+* ~~Bad, because it requires an external library~~ (it's already included)
+* Bad, because it adds up learning curve for those who've never used it before
 
-* Good, because [argument a]
-* Good, because [argument b]
-* Bad, because [argument c]
-* … <!-- numbers of pros and cons can vary -->
 Option 3
-[example | description | pointer to more information | …] <!-- optional -->
+We don't redesign the flow and keeps the pattern of KeyDownBinder and calling executeHotKey function that reads database on every key stroke. We just spend a lot of time fixing it whenever issue appears again.
 
-* Good, because [argument a]
-* Good, because [argument b]
-* Bad, because [argument c]
+* Good, because immediate cost may be low
+* Bad, because it somewhat blocks tech debt effort because of how KeyDownBinder has been used to trigger hotkey callback imperatively
+* Bad, because it still hangs event listeners from all KeyDownBinder instances, which are rendered through components that are unnecessarily mounted. For instance, Modal, Dropdown don't need to be mounted when they are not open but they are. This includes KeyDownBinder, which means keydown event listeners are registered unnecessarily; contributing to draining overall app performance.
+
 * … <!-- numbers of pros and cons can vary -->
 Links
 * [Link type] [Link to ADR] <!-- example: Refined by [ADR-0005](0005-example.md) -->
