@@ -53,8 +53,67 @@ Chosen option: "option 1", because
 This option requires EventEmitter and React Context implementation. 
 ![plot](./option-1-diagram.png)
 
+EventEmitter and React Context
 ```js
-const GlobalHotKeysBinder: FunctionComponent<{ children: ReactNode }> = ({ keysMap, children }) => {
+
+const HOTKEY_EVENT_TAG = 'HOTKEY_EVENT_TAG';
+const hotkeyEvent = new EventEmitter();
+
+interface HotKeyCommand {
+  hotkeyId: string;
+  conditions?: string[];
+}
+export const HotKeysContext = createContext<UseHotKeysContext>({} as UseHotKeysContext);
+export const HotKeysProvider: FunctionComponent<{ children: ReactNode}> = ({ children }) => {
+  const { hotKeyRegistry } = useSelector(selectSettings);
+
+  const sendHotkeyEvent = useCallback((hotkeyId: string, targetIdentifier?: string) => {
+    hotkeyEvent.emit(HOTKEY_EVENT_TAG, { hotkeyId, targetIdentifier });
+  }, []);
+
+  const checkIfHotKeyPressed = useCallback((e: KeyboardEvent, definitions: Record<string, HotKeyDefinition>): null | HotKeyDefinition => {
+    /**
+     * this is a copy paste from the existing function with slight modification
+    */
+    function pressedHotKey(event: KeyboardEvent, definition: HotKeyDefinition): boolean {
+      const pressedKeyComb: KeyCombination = {
+        ctrl: event.ctrlKey,
+        alt: event.altKey,
+        shift: event.shiftKey,
+        meta: event.metaKey,
+        /**
+         * TODO: keyCode is deprecated. we may refactor this in the soon future but this is out of scope for this work.
+         * */
+        keyCode: event.keyCode,
+      };
+
+      const keyCombList = getPlatformKeyCombinations(hotKeyRegistry[definition.id]);
+      for (const keyComb of keyCombList) {
+        if (areSameKeyCombinations(pressedKeyComb, keyComb)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    const pressed = Object.values(definitions).find(def => pressedHotKey(e, def));
+    if (!pressed) {
+      return null;
+    }
+
+    return pressed;
+  }, [hotKeyRegistry]);
+
+  return (
+    <HotKeysContext.Provider value={{ sendHotkeyEvent, checkIfHotKeyPressed }}>{children}</HotKeysContext.Provider>
+  );
+};
+
+```
+GlobalHotKeysBinder
+```js
+const GlobalHotKeysBinder: FunctionComponent<{ children: ReactNode }> = ({ children }) => {
   const { sendHotkeyEvent, checkIfHotKeyPressed } = useContext(HotKeysContext);
 
   useEffect(() => {
@@ -74,9 +133,10 @@ const GlobalHotKeysBinder: FunctionComponent<{ children: ReactNode }> = ({ keysM
 
   return <>{children}</>;
 };
-
+```
+how it can be used.
+```js
 const TargetComponent1: FunctionComponent<Props> = props => {
-
   const handleHotKey = useCallback((e: HotKeyEvent) => {
     if (e.hotkeyId === hotKeyRefs.GRAPHQL_EXPLORER_FOCUS_FILTER.id) {
       // doSomething
