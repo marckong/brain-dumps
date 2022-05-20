@@ -9,6 +9,7 @@ Insomnia Desktop client supports hotkey commands to control the behaviors of the
 1. propagate the keydown event from <KeyDownBinder /> to the destination component
 2. read the NeDB database to check if the key combination exists as a registered hotkey (every key stroke triggers this)
 3. execute the callback function to act on the hotkey command in the destination component
+![plot](./current-diagram.png)
 
 It is observed that this way of flow is directed from the bottom to top, which goes against the react principle; top-to-bottom and declarative rendering.
 
@@ -50,10 +51,55 @@ Chosen option: "option 1", because
 ## Pros and Cons of the Options
 ### Option 1
 This option requires EventEmitter and React Context implementation. 
-
+![plot](./option-1-diagram.png)
 
 ```js
+const GlobalHotKeysBinder: FunctionComponent<{ children: ReactNode }> = ({ keysMap, children }) => {
+  const { sendHotkeyEvent, checkIfHotKeyPressed } = useContext(HotKeysContext);
 
+  useEffect(() => {
+    const body = document.body;
+    const listener = async (e: KeyboardEvent) => {
+      const result = await checkIfHotKeyPressed(e, hotKeyRefs);
+      if (!result) {
+        return;
+      }
+
+      sendHotkeyEvent(result.id);
+    };
+
+    body.addEventListener('keydown', listener);
+    return () => body.removeEventListener('keydown', listener);
+  }, [sendHotkeyEvent, checkIfHotKeyPressed]);
+
+  return <>{children}</>;
+};
+
+const TargetComponent1: FunctionComponent<Props> = props => {
+
+  const handleHotKey = useCallback((e: HotKeyEvent) => {
+    if (e.hotkeyId === hotKeyRefs.GRAPHQL_EXPLORER_FOCUS_FILTER.id) {
+      // doSomething
+    }
+  }, []);
+
+  useHotKeysSubscriber(handleHotKey);
+
+  return <div>Target Component 1</div>
+};
+
+const App: FunctionComponent = () => {
+  return (
+      <HotKeysProvider>
+        <GlobalHotKeysBinder>
+          <TargetComponent1 />
+          <SomeWrapper>
+            <TargetComponent2 />
+          </SomeWrapper>
+        </GlobalHotKeysBinder>
+      </HotKeysProvider>
+  );
+};
 ```
 
 * Good, because [argument a]
