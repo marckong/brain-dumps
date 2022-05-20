@@ -5,6 +5,8 @@
 * [Insomnia Desktop Hotkey Event Delegation](#insomnia-desktop-hotkey-event-delegation)
 * [Table of Content](#table-of-content)
   * [Context and Problem Statement](#context-and-problem-statement)
+    * [Context](#context)
+    * [Problem Statement](#problem-statement)
   * [Decision Drivers](#decision-drivers)
   * [Non-goals](#non-goals)
   * [Considered Options](#considered-options)
@@ -21,18 +23,17 @@
 ### Context
 Insomnia Desktop client supports hotkey commands to control the behaviors of the applications listed out here. Currently, the hotkey operation works by,
 
-1. propagate the keydown event from <KeyDownBinder /> to the destination component
-2. read the NeDB database to check if the key combination exists as a registered hotkey (every key stroke triggers this)
+1. propagate the keydown event from [<KeyDownBinder />](https://github.com/Kong/insomnia/blob/40af38c3b9711ff6ba4ab647be08765a0aeefeab/packages/insomnia/src/ui/components/keydown-binder.ts#L17) to the destination component
+2. [read](https://github.com/Kong/insomnia/blob/40af38c3b9711ff6ba4ab647be08765a0aeefeab/packages/insomnia/src/common/hotkeys-listener.ts#L35) the [NeDB](https://github.com/louischatriot/nedb) database to check if the key combination exists as a registered hotkey (every key stroke triggers this)
 3. execute the callback function to act on the hotkey command in the destination component
 
 ![plot](./current-diagram.png)
 
-It is observed that this way of flow is directed from the bottom to top, which goes against the react principle; top-to-bottom and declarative rendering.
+This pattern has created complications when any scoping of a keydown event is required to control a specific component. For instance, [the event stream is blocked in the RequestUrlBar component tree to bubble form submission events by pressing the “Enter” key due to scoping](https://github.com/Kong/insomnia/issues/4743).
 
-More importantly, this pattern has created complications when any scoping of a keydown event is required to control a specific component. For instance, the event stream is blocked in the RequestUrlBar component tree to bubble form submission events by pressing the “Enter” key due to scoping.
-Problem Statement
+### Problem Statement
 
-The bottom-to-top way of current hotkey operation flow has created complications and repeated bugs, and this may need another attention to revisit the current hotkey operation flow.
+The bottom-to-top way of current hotkey operation flow has created complications and [repeated bugs](https://github.com/Kong/insomnia/issues?q=is%3Aissue+hotkey+is%3Aclosed+bug+), and this may need another attention to revisit the current hotkey operation flow.
 
 ## Decision Drivers
 
@@ -41,11 +42,12 @@ The bottom-to-top way of current hotkey operation flow has created complications
 * NeDB database should be read only once unless its modification happens
 
 ## Non-goal
-* This effort can help converting class components into functional components, but that is not the goal for this work.
+* can help converting class components into functional components, but that is not the goal for this work.
+* does not include enhancing dropdown or modal functionality
 
 ## Considered Options
-* option 1 - use of pub/sub pattern with EventEmitter and React Context AP in the top to flush out hotkey event from top to bottom
-* option 2 - variation of option 1 with RxJS Subject instead of the native EventEmitter
+* option 1 - use of pub/sub pattern with [EventEmitter](https://nodejs.org/api/events.html#class-eventemitter) and [React Context API](https://reactjs.org/docs/context.html) in the top to flush out hotkey event from top to bottom
+* option 2 - variation of option 1 with [RxJS](https://rxjs.dev/) [Subject](https://rxjs.dev/api/index/class/Subject) instead of the native EventEmitter
 * option 3 - keep the existing pattern and fix it up
 
 ## Decision Outcome
