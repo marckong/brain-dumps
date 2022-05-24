@@ -13,6 +13,7 @@
   * [Decision Outcome](#decision-outcome)
     * [Positive Consequences](#positive-consequences)
     * [Negative Consequences](#negative-consequences)
+    * [Rollout](#positive-consequences)
   * [Pros and Cons of the Options](#pros-and-cons-of-the-options)
     * [Option 1](#option-1)
     * [Option 2](#option-2)
@@ -23,23 +24,24 @@
 ### Context
 Insomnia Desktop client supports hotkey commands to control the behaviors of the applications listed out here. Currently, the hotkey operation works by,
 
-1. propagate the keydown event from [<KeyDownBinder />](https://github.com/Kong/insomnia/blob/40af38c3b9711ff6ba4ab647be08765a0aeefeab/packages/insomnia/src/ui/components/keydown-binder.ts#L17) to the destination component
+1. propagate the keydown event from [<KeyDownBinder />](https://github.com/Kong/insomnia/blob/40af38c3b9711ff6ba4ab647be08765a0aeefeab/packages/insomnia/src/ui/components/keydown-binder.ts#L17) to the destination component with an option to stop the propagation
 2. [read](https://github.com/Kong/insomnia/blob/40af38c3b9711ff6ba4ab647be08765a0aeefeab/packages/insomnia/src/common/hotkeys-listener.ts#L35) the [NeDB](https://github.com/louischatriot/nedb) database to check if the key combination exists as a registered hotkey (every key stroke triggers this)
 3. execute the callback function to act on the hotkey command in the destination component
 
 ![plot](./current-diagram.png)
 
-This pattern has created complications when any scoping of a keydown event is required to control a specific component. For instance, [the event stream is blocked in the RequestUrlBar component tree to bubble form submission events by pressing the “Enter” key due to scoping](https://github.com/Kong/insomnia/issues/4743).
-
 ### Problem Statement
 
-The bottom-to-top way of current hotkey operation flow has created complications and [repeated bugs](https://github.com/Kong/insomnia/issues?q=is%3Aissue+hotkey+is%3Aclosed+bug+), and this may need another attention to revisit the current hotkey operation flow.
+The currrent pattern may work generally fine when the keydown event scope is not limited. However, it creates complications when event propagation is stopped and event is scoped to a child DOM tree.
+
+This [issue]((https://github.com/Kong/insomnia/issues?q=is%3Aissue+hotkey+is%3Aclosed+bug+)) exemplifies such complication. As issues have appeared several times already, it may need another attention to revisit the current hotkey operation flow.
 
 ## Decision Drivers
 
 * The Keyboard, ‘keydown’, event bubble/propagation needs to be completely separated from hotkey command event propagation
 * The hotkey command event needs to be distributed from the top to the bottom and selectively listened in where a hotkey operation actually targets
 * NeDB database should be read only once unless its modification happens
+* Slight performance enhancement can be expected as the current implementation registers keydown event listeners to several DOM elements and reads NeDB every key stroke
 
 ## Non-goal
 * can help converting class components into functional components, but that is not the goal for this work.
@@ -68,6 +70,14 @@ Chosen option: "option 1", because
 * requires more time in development; higher test coverage before implementing this option and more refactoring of React components
 * leaves workaround pattern of wrapping a class component with react component to achieve the same imperative operation to control child component using ref objects
 * requires strong willingness and time allocation to clean up workaround pattern
+* despite successful removal of execessive DOM event listeners, it adds several EventEmitter listeners. However, this implementation only requires one keydown listener to one DOM element and EventEmitter listeners are registered to the same source, which may make a difference
+
+### Rollout
+Phase | Execution
+--- | ---
+1 | Add Playwright tests for each hot key operation
+2 | Add HotKeysContext, HotKeysPropagator, HotKeysExecutor and hooks for replacing the KeyDownBinder and executeCallback
+3 | Migrate all the functional component workaround for pure component classes and remove HotKeysExecutor and remove the noise
 
 ## Pros and Cons of the Options
 ### Option 1
