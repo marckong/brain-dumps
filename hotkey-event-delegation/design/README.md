@@ -2,20 +2,21 @@
 * Status: [drafted]
 
 ## Table of Content
-* [[Spec] Insomnia Desktop Hotkey Event Delegation](#insomnia-desktop-hotkey-event-delegation)
+* [[Spec] Insomnia Desktop Hotkey Event Delegation](#spec-insomnia-desktop-hotkey-event-delegation)
 * [Table of Content](#table-of-content)
-  * [Overview](#context-and-problem-statement)
-    * [Summary](#context)
-    * [High Level Diagram](#problem-statement)
-  * [Implementation](#decision-drivers)
-    * [Event Capturing](#context)
-    * [Event Propagation](#context)
-    * [Event Listening](#context)
-  * [Rollout Plan](#non-goals)
-    * [Phase 1](#context)
-    * [Phase 2](#context)
-    * [Phase 3](#context)
-    * [Phase 4](#context)
+  * [Overview](#overview)
+    * [Summary](#summary)
+    * [High Level Diagram](#high-level-diagram)
+  * [Implementation](#implementation)
+    * [DOM Event Capturing](#dom-event-capturing)
+    * [Custom Event Propagation](#custom-event-propagation)
+    * [Custom Event Listening](#custom-event-listening)
+        * [Single Hotkey](#single-hotkey)
+        * [Multiple Hotkeys](#multiple-hotkeys)
+  * [Rollout Plan](#rollout-plan)
+    * [Phase 1](#phase-1---add-playwright-tests-for-each-hot-key-operation)
+    * [Phase 2](phase-2---add-hotkeyscontext-hotkeyspropagator-hotkeysexecutor-and-hooks-for-replacing-the-keydownbinder-and-executecallback)
+    * [Phase 3](#phase-3---migrate-all-the-functional-component-workaround-for-pure-component-classes-and-remove-hotkeysexecutor-and-remove-the-noise)
 
 ## Overview
 
