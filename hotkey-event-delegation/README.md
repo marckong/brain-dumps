@@ -28,7 +28,7 @@ Insomnia Desktop client supports hotkey commands to control the behaviors of the
 2. [read](https://github.com/Kong/insomnia/blob/40af38c3b9711ff6ba4ab647be08765a0aeefeab/packages/insomnia/src/common/hotkeys-listener.ts#L35) the [NeDB](https://github.com/louischatriot/nedb) database to check if the key combination exists as a registered hotkey (every key stroke triggers this)
 3. execute the callback function to act on the hotkey command in the destination component
 
-![plot](./current-diagram.png)
+![plot](./assets/current-diagram.png)
 
 ### Problem Statement
 
@@ -83,7 +83,7 @@ Phase | Execution
 ### Option 1
 This option requires EventEmitter and React Context implementation. 
 
-![plot](./option-1-diagram.png)
+![plot](./assets/option-1-diagram.png)
 
 * Good, because it does not require any external library
 * Good, because it centralizes the keydown event to document.body, which flushes out a command throughout the application via HotKeysContext subscription; top to bottom

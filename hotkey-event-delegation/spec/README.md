@@ -24,7 +24,7 @@
 This design is to allow the Insomnia Client to propagate a custom event after keydown event is captured in the document.body and to distribute the custom event from *top to bottom* for hotkey execution in any component that needs to act on it.
 
 ### High Level Diagram
-![plot](../option-1-diagram.png)
+![plot](../assets/option-1-diagram.png)
 
 ## Implementation
 
